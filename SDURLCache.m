@@ -109,12 +109,16 @@ static NSDateFormatter* CreateDateFormatter(NSString *format)
     return date;
 }
 
++ (BOOL)validStatusCode:(NSInteger)status {
+    return (status == 200 || status == 203 || status == 300 || status == 301 || status == 302 || status == 307 || status == 410);
+}
+
 /*
  * This method tries to determine the expiration date based on a response headers dictionary.
  */
 + (NSDate *)expirationDateFromHeaders:(NSDictionary *)headers withStatusCode:(NSInteger)status
 {
-    if (status != 200 && status != 203 && status != 300 && status != 301 && status != 302 && status != 307 && status != 410)
+    if (![SDURLCache validStatusCode:status])
     {
         // Uncacheable response status code
         return nil;
