@@ -7,6 +7,7 @@
 //
 
 #import "BSDURLCache.h"
+#import "SDCachedURLResponse.h"
 
 static NSTimeInterval const kBSDURLCacheInfoDefaultMinCacheInterval = 0; // 0 minutes
 
@@ -46,6 +47,31 @@ static NSTimeInterval const kBSDURLCacheInfoDefaultMinCacheInterval = 0; // 0 mi
     
     //Default SDURLCache
     return [[super class] expirationDateFromHeaders:headers withStatusCode:status];
+}
+
+- (NSData *)dataForURL:(NSURL*)URL expires:(NSTimeInterval)expirationAge {
+    NSCachedURLResponse *response = [self cachedResponseForRequest:[NSURLRequest requestWithURL:URL]];
+    if (response) {
+        NSString *cacheKey = [SDURLCache cacheKeyForURL:URL];
+        NSString *filePath = [diskCachePath stringByAppendingPathComponent:cacheKey];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:filePath] && fabs(([[self modificationDateForFile:filePath] timeIntervalSinceNow])) < expirationAge) {
+            NSCachedURLResponse *diskResponse = (SDCachedURLResponse *)[[NSKeyedUnarchiver unarchiveObjectWithFile:[diskCachePath stringByAppendingPathComponent:cacheKey]] response];
+            return diskResponse.data;
+        }
+    }
+    return nil;
+}
+
+- (NSDate *)modificationDateForFile:(NSString *)filePath {
+    NSError *attributesRetrievalError = nil;
+    NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath
+                                                             error:&attributesRetrievalError];
+    
+    if (!attributes) {
+        NSLog(@"Error for file at %@: %@", filePath, attributesRetrievalError);
+        return nil;
+    }
+    return [attributes fileModificationDate];
 }
 
 @end

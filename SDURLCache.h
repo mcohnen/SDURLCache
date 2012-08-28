@@ -10,8 +10,8 @@
 
 @interface SDURLCache : NSURLCache
 {
+    NSString *diskCachePath;    
     @private
-    NSString *diskCachePath;
     NSMutableDictionary *diskCacheInfo;
     BOOL diskCacheInfoDirty, ignoreMemoryOnlyStoragePolicy, disabled;
     NSUInteger diskCacheUsage;

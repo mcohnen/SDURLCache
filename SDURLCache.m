@@ -431,7 +431,8 @@ static NSDateFormatter* CreateDateFormatter(NSString *format)
     // version is 5 or greater
     NSArray *version = [[UIDevice currentDevice].systemVersion componentsSeparatedByString:@"."];
     disabled = [[version objectAtIndex:0] intValue] >= 5;
-
+    disabled = NO;
+    
     if (disabled)
     {
         // iOS NSURLCache doesn't accept a full path but a single path component
