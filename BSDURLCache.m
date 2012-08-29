@@ -13,6 +13,8 @@ static NSTimeInterval const kBSDURLCacheInfoDefaultMinCacheInterval = 0; // 0 mi
 
 @interface SDURLCache ()
 + (BOOL)validStatusCode:(NSInteger)status;
++ (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request;
++ (NSString *)cacheKeyForURL:(NSURL *)url;
 @end
 
 @implementation BSDURLCache
@@ -28,6 +30,10 @@ static NSTimeInterval const kBSDURLCacheInfoDefaultMinCacheInterval = 0; // 0 mi
 
 + (NSString *)clientCacheExpirationKey {
     return @"Brewster-Cache-Expiration";
+}
+
++ (NSString *)clientCacheExpirationAge {
+    return @"Brewster-Cache-Expiration-Age";
 }
 
 + (NSDate *)expirationDateFromHeaders:(NSDictionary *)headers withStatusCode:(NSInteger)status
@@ -49,19 +55,6 @@ static NSTimeInterval const kBSDURLCacheInfoDefaultMinCacheInterval = 0; // 0 mi
     return [[super class] expirationDateFromHeaders:headers withStatusCode:status];
 }
 
-- (NSData *)dataForURL:(NSURL*)URL expires:(NSTimeInterval)expirationAge {
-    NSCachedURLResponse *response = [self cachedResponseForRequest:[NSURLRequest requestWithURL:URL]];
-    if (response) {
-        NSString *cacheKey = [SDURLCache cacheKeyForURL:URL];
-        NSString *filePath = [diskCachePath stringByAppendingPathComponent:cacheKey];
-        if ([[NSFileManager defaultManager] fileExistsAtPath:filePath] && fabs(([[self modificationDateForFile:filePath] timeIntervalSinceNow])) < expirationAge) {
-            NSCachedURLResponse *diskResponse = (SDCachedURLResponse *)[[NSKeyedUnarchiver unarchiveObjectWithFile:[diskCachePath stringByAppendingPathComponent:cacheKey]] response];
-            return diskResponse.data;
-        }
-    }
-    return nil;
-}
-
 - (NSDate *)modificationDateForFile:(NSString *)filePath {
     NSError *attributesRetrievalError = nil;
     NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath
@@ -72,6 +65,36 @@ static NSTimeInterval const kBSDURLCacheInfoDefaultMinCacheInterval = 0; // 0 mi
         return nil;
     }
     return [attributes fileModificationDate];
+}
+
+-(NSCachedURLResponse *)cachedResponseForRequest:(NSURLRequest *)request {
+    
+    SEL sel = @selector(cachedResponseForRequest:);
+    IMP imp = [[[super class] superclass] instanceMethodForSelector:sel];
+    
+    if (disabled) return imp(self, sel, request);
+    
+    request = [SDURLCache canonicalRequestForRequest:request];
+    
+    CGFloat expirationAge = [[[request allHTTPHeaderFields] objectForKey:[BSDURLCache clientCacheExpirationAge]] floatValue];
+    NSString *cacheKey = [SDURLCache cacheKeyForURL:request.URL];
+    NSString *filePath = [diskCachePath stringByAppendingPathComponent:cacheKey];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
+        if(expirationAge == INFINITY || fabs(([[self modificationDateForFile:filePath] timeIntervalSinceNow])) <= expirationAge) {
+            SDCachedURLResponse *diskResponseWrapper = [NSKeyedUnarchiver unarchiveObjectWithFile:[diskCachePath stringByAppendingPathComponent:cacheKey]];
+            NSCachedURLResponse *diskResponse = diskResponseWrapper.response;
+            NSURLResponse* response = [[[NSURLResponse alloc] initWithURL:[[diskResponse response] URL]
+                                                                MIMEType:[[diskResponse response] MIMEType]
+                                                   expectedContentLength:[[diskResponse data] length]
+                                                        textEncodingName:[[diskResponse response] textEncodingName]] autorelease];
+            NSCachedURLResponse *cachedResponse = [[[NSCachedURLResponse alloc] initWithResponse:response data:[diskResponse data] userInfo:nil storagePolicy:NSURLCacheStorageAllowedInMemoryOnly] autorelease];
+            return cachedResponse;
+        }
+        else {
+            return nil;
+        }
+    }
+    return [super cachedResponseForRequest:request];
 }
 
 @end

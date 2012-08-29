@@ -10,5 +10,5 @@
 
 @interface BSDURLCache : SDURLCache
 + (NSString *)clientCacheExpirationKey;
-- (NSData *)dataForURL:(NSURL*)URL expires:(NSTimeInterval)expirationAge;
++ (NSString *)clientCacheExpirationAge;
 @end
