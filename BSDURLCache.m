@@ -76,11 +76,11 @@ static NSTimeInterval const kBSDURLCacheInfoDefaultMinCacheInterval = 0; // 0 mi
     
     request = [SDURLCache canonicalRequestForRequest:request];
     
-    CGFloat expirationAge = [[[request allHTTPHeaderFields] objectForKey:[BSDURLCache clientCacheExpirationAge]] floatValue];
+    float expirationAge = [[[request allHTTPHeaderFields] objectForKey:[BSDURLCache clientCacheExpirationAge]] floatValue];
     NSString *cacheKey = [SDURLCache cacheKeyForURL:request.URL];
     NSString *filePath = [diskCachePath stringByAppendingPathComponent:cacheKey];
     if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
-        if(expirationAge == INFINITY || fabs(([[self modificationDateForFile:filePath] timeIntervalSinceNow])) <= expirationAge) {
+        if(expirationAge == -1 || fabs(([[self modificationDateForFile:filePath] timeIntervalSinceNow])) <= expirationAge) {
             SDCachedURLResponse *diskResponseWrapper = [NSKeyedUnarchiver unarchiveObjectWithFile:[diskCachePath stringByAppendingPathComponent:cacheKey]];
             NSCachedURLResponse *diskResponse = diskResponseWrapper.response;
             NSURLResponse* response = [[[NSURLResponse alloc] initWithURL:[[diskResponse response] URL]
