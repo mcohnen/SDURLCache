@@ -14,7 +14,7 @@
     BOOL disabled;
     @private
     NSMutableDictionary *diskCacheInfo;
-    BOOL diskCacheInfoDirty, ignoreMemoryOnlyStoragePolicy, disabled, _enableForIOS5AndUp;
+    BOOL diskCacheInfoDirty, ignoreMemoryOnlyStoragePolicy, _enableForIOS5AndUp;
     NSUInteger diskCacheUsage;
     NSTimeInterval minCacheInterval;
     NSOperationQueue *ioQueue;
